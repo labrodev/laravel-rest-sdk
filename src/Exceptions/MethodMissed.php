@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Labrodev\RestAdapter\Exceptions;
+namespace Labrodev\RestSdk\Exceptions;
 
 use Exception;
 

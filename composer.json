@@ -1,10 +1,11 @@
 {
-    "name": "labrodev/rest-adapter",
+    "name": "labrodev/rest-sdk",
     "license": "MIT",
     "require": {
         "php": ">=8.1",
-        "spatie/laravel-package-tools": "^1.14.0",
-        "illuminate/contracts": "^10.0"
+        "illuminate/contracts": ">=10.0",
+        "labrodev/php-mixed-converter": "^1.0",
+        "spatie/laravel-package-tools": ">=1.14.0"
     },
     "require-dev": {
         "laravel/pint": "^1.0",
@@ -22,15 +23,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Labrodev\\RestAdapter\\": "src/"
-        },
-        "files": [
-            "src/init.php"
-        ]
+            "Labrodev\\RestSdk\\": "src/"
+        }
     },
     "autoload-dev": {
         "psr-4": {
-            "Labrodev\\RestAdapter\\Tests\\": "tests/"
+            "Labrodev\\RestSdk\\Tests\\": "tests/"
         }
     },
     "scripts": {
@@ -60,7 +58,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Labrodev\\RestAdapter\\RestAdapterServiceProvider"
+                "Labrodev\\RestSdk\\RestSdkServiceProvider"
             ]
         }
     },

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Labrodev\RestAdapter\Exceptions;
+namespace Labrodev\RestSdk\Exceptions;
 
 use Exception;
 
@@ -19,14 +19,14 @@ class RequestFailed extends Exception
      *
      * @param string $payloadClass The class name of the payload associated with the failed request.
      * @param int $status The HTTP status code returned by the failed request.
-     * @param string $error An error message or description of the failure.
+     * @param string $body
      * @return self The exception instance populated with failure details.
      */
     public static function make(
         string $payloadClass,
         int $status,
-        string $error
+        string $body
     ): self {
-        return new self("Request failed for `{$payloadClass}`. Status: `{$status}`. Error: `{$error}`.");
+        return new self("Request failed for `{$payloadClass}`. Status: `{$status}`. Body: `{$body}`.");
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Labrodev\RestAdapter;
+namespace Labrodev\RestSdk;
 
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -13,14 +13,14 @@ use Spatie\LaravelPackageTools\PackageServiceProvider;
  * This class is responsible for configuring the package within a Laravel application.
  * It registers configurations, views, routes, and other components necessary for the package.
  */
-class RestAdapterServiceProvider extends PackageServiceProvider
+class RestSdkServiceProvider extends PackageServiceProvider
 {
     /**
      * The name of the package.
      *
      * Used for configuration and other package-specific references.
      */
-    public const PACKAGE_NAME = 'rest-adapter';
+    public const PACKAGE_NAME = 'rest-sdk';
 
     /**
      * Configures the package using Spatie's package tools.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Labrodev\RestAdapter\Contracts;
+namespace Labrodev\RestSdk\Contracts;
 
 /**
  * Interface for defining the structure and capabilities of payloads used in API requests.
@@ -84,13 +84,18 @@ interface PayloadAware
     public function addRouteParameter(mixed $routeParameter): void;
 
     /**
-     * @param int $requestAttemptsLimit
+     * @param array $queryParameters
      * @return void
      */
-    public function setRequestAttemptsLimit(int $requestAttemptsLimit): void;
+    public function setQueryParameters(array $queryParameters): void;
 
     /**
-     * @return int
+     * @return array
      */
-    public function fetchRequestAttemptsLimit(): int;
+    public function getQueryParameters(): array;
+
+    /**
+     * @return string
+     */
+    public function getEndpointWithQueryParameters(): string;
 }

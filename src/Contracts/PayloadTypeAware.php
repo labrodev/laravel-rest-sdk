@@ -1,6 +1,6 @@
 <?php
 
-namespace Labrodev\RestAdapter\Contracts;
+namespace Labrodev\RestSdk\Contracts;
 
 interface PayloadTypeAware
 {

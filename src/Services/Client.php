@@ -2,33 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Labrodev\RestAdapter\Services;
+namespace Labrodev\RestSdk\Services;
 
-use Labrodev\RestAdapter\Exceptions\ApiUrlMissed;
-use Labrodev\RestAdapter\Exceptions\RequestAttemptLimitReached;
-use Labrodev\RestAdapter\Exceptions\RequestFailed;
-use Labrodev\RestAdapter\Contracts\ClientAware;
-use Labrodev\RestAdapter\Contracts\PayloadAware;
+use Labrodev\RestSdk\Exceptions\ApiUrlMissed;
+use Labrodev\RestSdk\Exceptions\MethodUnsupported;
+use Labrodev\RestSdk\Exceptions\RequestAttemptLimitReached;
+use Labrodev\RestSdk\Exceptions\RequestFailed;
+use Labrodev\RestSdk\Contracts\ClientAware;
+use Labrodev\RestSdk\Contracts\PayloadAware;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class Client implements ClientAware
 {
-    /**
-     * The payload containing data for the request.
-     *
-     * @var PayloadAware
-     */
-    public PayloadAware $payload;
-
-    /**
-     * The base URL for the API.
-     *
-     * @var string
-     */
-    private string $apiUrl;
-
     /**
      * Counter of request attempts
      *
@@ -38,58 +25,37 @@ class Client implements ClientAware
      */
     private int $requestAttempts = 0;
 
-    /**
-     * @var integer
-     */
-    private int $requestAttemptsLimit = 1;
-
-    private int $refreshTokenAttempt = 0;
-
     private const SLEEP_IN_SECONDS = 5;
 
     /**
-     * Initializes the client with a given payload.
-     *
-     * @param  PayloadAware $payload  The payload for the API request.
-     * @throws ApiUrlMissed If the API URL is not defined in configuration.
+     * @param PayloadAware $payload
+     * @param string $apiUrl
+     * @param int $requestAttemptsLimit
      */
-    public function __construct(PayloadAware $payload)
-    {
-        $this->apiUrl = config('tw.api_url') ?? throw ApiUrlMissed::make();
-        $this->requestAttemptsLimit = config('tw.request_attempts_limit') ?? 1;
-        $this->payload = $payload;
+    public function __construct(
+        private PayloadAware $payload,
+        private string $apiUrl,
+        private int $requestAttemptsLimit = 1
+    ) {
     }
 
     /**
-     * Static method as factory to make an instance of current class
-     *
-     * @param PayloadInterface $payload
+     * @param PayloadAware $payload
+     * @param string $apiUrl
+     * @param int $requestAttemptsLimit
      * @return self
      */
-    public static function make(PayloadInterface $payload): self
+    public static function make(PayloadAware $payload, string $apiUrl, int $requestAttemptsLimit = 1): self
     {
-        return new self($payload);
+        return new self(payload: $payload, apiUrl: $apiUrl, requestAttemptsLimit: $requestAttemptsLimit);
     }
 
     /**
-     * Executes the API request based on the payload settings.
-     *
-     * @return array<mixed,mixed> The API response as an associative array.
-     * @throws TokenMissed If the token is missing.
+     * @throws RequestAttemptLimitReached
+     * @throws MethodUnsupported
+     * @throws RequestFailed
      */
-    public function execute(): array
-    {
-        $token = $this->payload->getToken() ?? $this->refreshToken();
-
-        return $this->makeRequest($token)->json();
-    }
-
-    /**
-     * Makes the API request using the provided token
-     * @return Response The API response.
-     * @throws RequestFailed If the request fails.
-     */
-    private function makeRequest(): Response
+    public function execute(): Response
     {
         $httpRequest = Http::withHeaders($this->payload->getHeaders());
 
@@ -99,22 +65,21 @@ class Client implements ClientAware
         );
 
         $response = match($this->payload->getMethod()) {
-            PayloadInterface::METHOD_GET => $httpRequest->get($requestUrl),
-            PayloadInterface::METHOD_POST => $httpRequest->post($requestUrl, $this->payload->getBody()),
-            PayloadInterface::METHOD_PUT => $httpRequest->put($requestUrl, $this->payload->getBody()),
+            PayloadAware::METHOD_GET => $httpRequest->get($requestUrl),
+            PayloadAware::METHOD_POST => $httpRequest->post($requestUrl, $this->payload->getBody()),
+            PayloadAware::METHOD_PUT => $httpRequest->put($requestUrl, $this->payload->getBody()),
             default => throw MethodUnsupported::make($this->payload->getMethod())
         };
 
-        if ($response->successful()) {
-            return $response;
+        if (!$response->successful()) {
+            match ($response->status()) {
+                SymfonyResponse::HTTP_REQUEST_TIMEOUT => $this->handleTimeout(),
+                default => $this->handleOtherStatuses($response)
+            };
         }
 
-        return match ($response->status()) {
-            SymfonyResponse::HTTP_REQUEST_TIMEOUT => $this->handleTimeout(),
-            default => $this->handleOtherStatuses($response)
-        };
+        return $response;
     }
-
 
     /**
      * Constructs the full request URL from the API base URL and endpoint.
@@ -133,11 +98,11 @@ class Client implements ClientAware
      *
      * @return Response The response from the retried request.
      * @throws RequestAttemptLimitReached
-     * @throws RequestFailed
+     * @throws RequestFailed|MethodUnsupported
      */
     private function handleTimeout(): Response
     {
-        if ($this->refreshTokenAttempt > $this->requestAttemptsLimit) {
+        if ($this->requestAttempts > $this->requestAttemptsLimit) {
             throw RequestAttemptLimitReached::make();
         }
 
@@ -145,7 +110,7 @@ class Client implements ClientAware
 
         $this->countRequestAttempt();
 
-        return $this->makeRequest();
+        return $this->execute();
     }
 
     /**
@@ -160,7 +125,7 @@ class Client implements ClientAware
         throw RequestFailed::make(
             payloadClass: get_class($this->payload),
             status: $response->status(),
-            error: $response->json()['error'] ?? 'Unknow error'
+            body: $response->body()
         );
     }
 

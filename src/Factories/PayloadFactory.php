@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Labrodev\RestAdapter\Factories;
+namespace Labrodev\RestSdk\Factories;
 
-use Boka\Tw\Enums\PayloadType;
-use Boka\Tw\Exceptions\PayloadClassNotExist;
-use Labrodev\RestAdapter\Contracts\PayloadAware;
-use Labrodev\RestAdapter\Contracts\PayloadTypeAware;
+use Labrodev\RestSdk\Exceptions\PayloadClassNotExist;
+use Labrodev\RestSdk\Contracts\PayloadAware;
+use Labrodev\RestSdk\Contracts\PayloadTypeAware;
 
 class PayloadFactory
 {
@@ -24,6 +23,12 @@ class PayloadFactory
             throw PayloadClassNotExist::make($payloadClassName);
         }
 
-        return new $payloadClassName();
+        $payload = new $payloadClassName();
+
+        if (!is_subclass_of($payload, PayloadAware::class)) {
+            throw PayloadClassNotExist::make($payloadClassName);
+        }
+
+        return new $payload();
     }
 }

@@ -2,9 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Labrodev\RestAdapter\Contracts;
+namespace Labrodev\RestSdk\Contracts;
+
+use Illuminate\Http\Client\Response;
 
 interface ClientAware
 {
-    public function execute(): array;
+    /**
+     * @return Response
+     */
+    public function execute(): Response;
 }

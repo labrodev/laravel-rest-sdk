@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Labrodev\RestAdapter\Services;
+namespace Labrodev\RestSdk\Services;
 
-use Labrodev\RestAdapter\Contracts\PayloadAware;
-use Labrodev\RestAdapter\Exceptions\EndpointMissed;
+use Labrodev\PhpMixedConverter\MixedConverter;
+use Labrodev\RestSdk\Contracts\PayloadAware;
+use Labrodev\RestSdk\Exceptions\EndpointMissed;
+use Labrodev\RestSdk\Exceptions\MethodMissed;
 
 /**
  * Abstract class representing a generic payload for API requests.
@@ -24,7 +26,7 @@ abstract class Payload implements PayloadAware
     /**
      * @var array The headers of the HTTP request.
      */
-    private array $headers = [];
+    private array $headers;
 
     /**
      * @var array Query parameters of the HTTP request
@@ -34,17 +36,12 @@ abstract class Payload implements PayloadAware
     /**
      * @var ?string The endpoint of the HTTP request.
      */
-    private ?string $endpoint = null;
+    private ?string $endpoint;
 
     /**
      * @var ?string The HTTP method of the request.
      */
-    private ?string $method = null;
-
-    /**
-     * @var int
-     */
-    private int $requestAttemptsLimit;
+    private ?string $method;
 
     /**
      * Initializes the payload with the supplied Supplier entity and fetches necessary credentials.
@@ -78,9 +75,8 @@ abstract class Payload implements PayloadAware
     }
 
     /**
-     * Gets the endpoint for the HTTP request.
-     *
-     * @return string The request endpoint.
+     * @return string
+     * @throws EndpointMissed
      */
     public function getEndpoint(): string
     {
@@ -89,23 +85,6 @@ abstract class Payload implements PayloadAware
         }
 
         return $this->endpoint;
-    }
-
-    /**
-     * @param PayloadAware $payload
-     * @return void
-     */
-    public function setAuthPayload(PayloadAware $payload): void
-    {
-        $this->authPayload = $payload;
-    }
-
-    /**
-     * @return PayloadAware|null
-     */
-    public function getAuthPayload(): ?PayloadAware
-    {
-        return $this->authPayload;
     }
 
     /**
@@ -134,14 +113,14 @@ abstract class Payload implements PayloadAware
     {
         $this->endpoint = sprintf('%s/%s',
             $this->fetchEndpoint(),
-            $routeParameter
+            MixedConverter::toString($routeParameter)
         );
     }
 
     /**
      * Gets the body of the HTTP request.
      *
-     * @return array<mixed,mixed> The request body.
+     * @return array The request body.
      */
     public function getBody(): array
     {
@@ -178,9 +157,8 @@ abstract class Payload implements PayloadAware
     }
 
     /**
-     * Gets the HTTP method for the request.
-     *
-     * @return string The request method.
+     * @return string
+     * @throws MethodMissed
      */
     public function getMethod(): string
     {
@@ -189,24 +167,6 @@ abstract class Payload implements PayloadAware
         }
 
         return $this->method;
-    }
-
-    /**
-     * @param int $requestAttemptsLimit
-     * @return void
-     */
-    public function setRequestAttemptsLimit(int $requestAttemptsLimit): void
-    {
-        $this->requestAttemptsLimit = $requestAttemptsLimit;
-    }
-
-    /**
-     * @param int $requestAttemptsLimit
-     * @return void
-     */
-    public function fetchRequestAttemptsLimit(): int
-    {
-        return $this->requestAttemptsLimit;
     }
 
     /**
