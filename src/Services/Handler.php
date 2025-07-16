@@ -34,10 +34,10 @@ class Handler implements HandlerAware
      * @param array $headers
      * @param array $routeParameters
      * @param array $queryParameters
+     * @param array $body
      * @return Response
-     * @throws ApiUrlMissed
-     * @throws PayloadClassNotExist
      * @throws MethodUnsupported
+     * @throws PayloadClassNotExist
      * @throws RequestAttemptLimitReached
      * @throws RequestFailed
      */
@@ -46,6 +46,7 @@ class Handler implements HandlerAware
         array $headers = [],
         array $routeParameters = [],
         array $queryParameters = [],
+        array $body = []
     ): Response {
         $payload = PayloadFactory::make(payloadType: $payloadType);
 
@@ -56,6 +57,8 @@ class Handler implements HandlerAware
         foreach ($headers as $header => $value) {
             $payload->addHeader($header, $value);
         }
+
+        $payload->setBody($body);
 
         $payload->setQueryParameters($queryParameters);
 

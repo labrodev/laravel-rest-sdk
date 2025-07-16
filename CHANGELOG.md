@@ -14,3 +14,8 @@ documented in this file.
 * Factories
 * Services
 
+## [1.03] - 2025-07-16
+
+### Added
+
+Body parameter in $handler→run() function to manage body of request.

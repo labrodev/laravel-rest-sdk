@@ -1,6 +1,30 @@
 {
     "name": "labrodev/rest-sdk",
+    "description": "Laravel package that simplifies and standardizes communication with external REST APIs in your Laravel application",
+    "keywords": [
+        "labrodev",
+        "laravel",
+        "laravel-package",
+        "laravel-rest-sdk",
+        "rest-api",
+        "sdk",
+        "php"
+    ],
     "license": "MIT",
+    "type": "library",
+    "homepage": "https://github.com/labrodev/laravel-sdk",
+    "authors": [
+        {
+            "name": "Labro Dev",
+            "email": "contact@labrodev.com",
+            "role": "Development Team"
+        }
+    ],
+    "support": {
+        "email": "contact@labrodev.com",
+        "issues": "https://github.com/labrodev/laravel-sdk/issues",
+        "source": "https://github.com/labrodev/laravel-sdk"
+    },
     "require": {
         "php": ">=8.1",
         "illuminate/contracts": ">=10.0",
