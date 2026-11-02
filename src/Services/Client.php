@@ -25,17 +25,23 @@ class Client implements ClientAware
      */
     private int $requestAttempts = 0;
 
-    private const SLEEP_IN_SECONDS = 5;
+    public const DEFAULT_RETRY_DELAY_SECONDS = 5;
 
     /**
      * @param PayloadAware $payload
      * @param string $apiUrl
-     * @param int $requestAttemptsLimit
+     * @param int $requestAttemptsLimit Maximum number of retries after a 408 Request Timeout response
+     * @param int|null $connectTimeout Seconds to wait for a connection; null keeps Laravel's default
+     * @param int|null $timeout Seconds to wait for a response; null keeps Laravel's default
+     * @param int $retryDelaySeconds Seconds to sleep before retrying a 408; 0 retries immediately
      */
     public function __construct(
         private PayloadAware $payload,
         private string $apiUrl,
-        private int $requestAttemptsLimit = 1
+        private int $requestAttemptsLimit = 1,
+        private ?int $connectTimeout = null,
+        private ?int $timeout = null,
+        private int $retryDelaySeconds = self::DEFAULT_RETRY_DELAY_SECONDS
     ) {
     }
 
@@ -43,11 +49,27 @@ class Client implements ClientAware
      * @param PayloadAware $payload
      * @param string $apiUrl
      * @param int $requestAttemptsLimit
+     * @param int|null $connectTimeout
+     * @param int|null $timeout
+     * @param int $retryDelaySeconds
      * @return self
      */
-    public static function make(PayloadAware $payload, string $apiUrl, int $requestAttemptsLimit = 1): self
-    {
-        return new self(payload: $payload, apiUrl: $apiUrl, requestAttemptsLimit: $requestAttemptsLimit);
+    public static function make(
+        PayloadAware $payload,
+        string $apiUrl,
+        int $requestAttemptsLimit = 1,
+        ?int $connectTimeout = null,
+        ?int $timeout = null,
+        int $retryDelaySeconds = self::DEFAULT_RETRY_DELAY_SECONDS
+    ): self {
+        return new self(
+            payload: $payload,
+            apiUrl: $apiUrl,
+            requestAttemptsLimit: $requestAttemptsLimit,
+            connectTimeout: $connectTimeout,
+            timeout: $timeout,
+            retryDelaySeconds: $retryDelaySeconds
+        );
     }
 
     /**
@@ -58,6 +80,14 @@ class Client implements ClientAware
     public function execute(): Response
     {
         $httpRequest = Http::withHeaders($this->payload->getHeaders());
+
+        if ($this->connectTimeout !== null) {
+            $httpRequest->connectTimeout($this->connectTimeout);
+        }
+
+        if ($this->timeout !== null) {
+            $httpRequest->timeout($this->timeout);
+        }
 
         $requestUrl = $this->fetchRequestUrl(
             apiUrl: $this->apiUrl,
@@ -71,14 +101,15 @@ class Client implements ClientAware
             default => throw MethodUnsupported::make($this->payload->getMethod())
         };
 
-        if (!$response->successful()) {
-            match ($response->status()) {
-                SymfonyResponse::HTTP_REQUEST_TIMEOUT => $this->handleTimeout(),
-                default => $this->handleOtherStatuses($response)
-            };
+        if ($response->successful()) {
+            return $response;
         }
 
-        return $response;
+        if ($response->status() === SymfonyResponse::HTTP_REQUEST_TIMEOUT) {
+            return $this->handleTimeout();
+        }
+
+        $this->handleOtherStatuses($response);
     }
 
     /**
@@ -102,11 +133,13 @@ class Client implements ClientAware
      */
     private function handleTimeout(): Response
     {
-        if ($this->requestAttempts > $this->requestAttemptsLimit) {
+        if ($this->requestAttempts >= $this->requestAttemptsLimit) {
             throw RequestAttemptLimitReached::make();
         }
 
-        sleep(self::SLEEP_IN_SECONDS);
+        if ($this->retryDelaySeconds > 0) {
+            sleep($this->retryDelaySeconds);
+        }
 
         $this->countRequestAttempt();
 
@@ -117,10 +150,10 @@ class Client implements ClientAware
      * Method to handle request errors
      *
      * @param Response $response
-     * @return void
+     * @return never
      * @throws RequestFailed
      */
-    private function handleOtherStatuses(Response $response): void
+    private function handleOtherStatuses(Response $response): never
     {
         throw RequestFailed::make(
             payloadClass: get_class($this->payload),
